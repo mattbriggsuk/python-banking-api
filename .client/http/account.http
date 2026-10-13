@@ -1,0 +1,137 @@
+# IntelliJ IDEA HTTP client: send requests in order from top to bottom.
+@baseUrl = http://localhost:8080
+
+### Register a customer for the account scenarios
+# @name registerAccountCustomer
+POST {{baseUrl}}/api/customer/register
+Content-Type: application/json
+
+{
+  "customer": {
+    "firstName": "Taylor",
+    "lastName": "Reed",
+    "email": "taylor.reed@example.com"
+  }
+}
+
+### Create a current source account
+# @name createSourceAccount
+POST {{baseUrl}}/api/account/create
+Authorization: Bearer {{registerAccountCustomer.response.body.$.sessionToken}}
+Content-Type: application/json
+
+{
+  "accountType": "CURRENT"
+}
+
+### Create a savings destination account
+# @name createDestinationAccount
+POST {{baseUrl}}/api/account/create
+Authorization: Bearer {{registerAccountCustomer.response.body.$.sessionToken}}
+Content-Type: application/json
+
+{
+  "accountType": "SAVINGS"
+}
+
+### List the customer's accounts
+GET {{baseUrl}}/api/customer/accounts?customerNumber={{registerAccountCustomer.response.body.$.customer.customerNumber}}
+Authorization: Bearer {{registerAccountCustomer.response.body.$.sessionToken}}
+Accept: application/json
+
+### Deposit into the source account
+POST {{baseUrl}}/api/account/deposit
+Authorization: Bearer {{registerAccountCustomer.response.body.$.sessionToken}}
+Content-Type: application/json
+
+{
+  "transaction": {
+    "transactionType": "DEPOSIT",
+    "amount": 100.00,
+    "targetAccountNumber": "{{createSourceAccount.response.body.$.account.accountNumber}}"
+  }
+}
+
+### Withdraw from the source account
+POST {{baseUrl}}/api/account/withdraw
+Authorization: Bearer {{registerAccountCustomer.response.body.$.sessionToken}}
+Content-Type: application/json
+
+{
+  "transaction": {
+    "transactionType": "WITHDRAWAL",
+    "amount": 10.00,
+    "targetAccountNumber": "{{createSourceAccount.response.body.$.account.accountNumber}}"
+  }
+}
+
+### Transfer funds to the destination account
+POST {{baseUrl}}/api/account/transfer
+Authorization: Bearer {{registerAccountCustomer.response.body.$.sessionToken}}
+Content-Type: application/json
+
+{
+  "transaction": {
+    "transactionType": "TRANSFER",
+    "amount": 25.00,
+    "sourceAccountNumber": "{{createSourceAccount.response.body.$.account.accountNumber}}",
+    "targetAccountNumber": "{{createDestinationAccount.response.body.$.account.accountNumber}}"
+  }
+}
+
+### Withdraw the remaining source balance
+POST {{baseUrl}}/api/account/withdraw
+Authorization: Bearer {{registerAccountCustomer.response.body.$.sessionToken}}
+Content-Type: application/json
+
+{
+  "transaction": {
+    "transactionType": "WITHDRAWAL",
+    "amount": 65.00,
+    "targetAccountNumber": "{{createSourceAccount.response.body.$.account.accountNumber}}"
+  }
+}
+
+### Withdraw the destination balance
+POST {{baseUrl}}/api/account/withdraw
+Authorization: Bearer {{registerAccountCustomer.response.body.$.sessionToken}}
+Content-Type: application/json
+
+{
+  "transaction": {
+    "transactionType": "WITHDRAWAL",
+    "amount": 25.00,
+    "targetAccountNumber": "{{createDestinationAccount.response.body.$.account.accountNumber}}"
+  }
+}
+
+### Close the source account
+POST {{baseUrl}}/api/account/close
+Authorization: Bearer {{registerAccountCustomer.response.body.$.sessionToken}}
+Content-Type: application/json
+
+{
+  "accountNumber": "{{createSourceAccount.response.body.$.account.accountNumber}}"
+}
+
+### Close the destination account
+POST {{baseUrl}}/api/account/close
+Authorization: Bearer {{registerAccountCustomer.response.body.$.sessionToken}}
+Content-Type: application/json
+
+{
+  "accountNumber": "{{createDestinationAccount.response.body.$.account.accountNumber}}"
+}
+
+### Attempt to deposit into a closed account (expected: 409)
+POST {{baseUrl}}/api/account/deposit
+Authorization: Bearer {{registerAccountCustomer.response.body.$.sessionToken}}
+Content-Type: application/json
+
+{
+  "transaction": {
+    "transactionType": "DEPOSIT",
+    "amount": 1.00,
+    "targetAccountNumber": "{{createSourceAccount.response.body.$.account.accountNumber}}"
+  }
+}

@@ -1,0 +1,49 @@
+# IntelliJ IDEA HTTP client: send requests in order from top to bottom.
+@baseUrl = http://localhost:8080
+
+### Register a customer and receive a PIN plus session token
+# @name registerCustomer
+POST {{baseUrl}}/api/customer/register
+Content-Type: application/json
+
+{
+  "customer": {
+    "firstName": "Alex",
+    "lastName": "Morgan",
+    "email": "alex.morgan@example.com"
+  }
+}
+
+### Get the authenticated customer
+GET {{baseUrl}}/api/customer/get?customerNumber={{registerCustomer.response.body.$.customer.customerNumber}}
+Authorization: Bearer {{registerCustomer.response.body.$.sessionToken}}
+Accept: application/json
+
+### Get accounts before opening one (expected: 200 with an empty list)
+GET {{baseUrl}}/api/customer/accounts?customerNumber={{registerCustomer.response.body.$.customer.customerNumber}}
+Authorization: Bearer {{registerCustomer.response.body.$.sessionToken}}
+Accept: application/json
+
+### Login by case-insensitive email and receive another session token
+# @name loginCustomer
+POST {{baseUrl}}/api/access/login
+Content-Type: application/json
+
+{
+  "identifier": "ALEX.MORGAN@EXAMPLE.COM",
+  "pin": "{{registerCustomer.response.body.$.pin}}"
+}
+
+### Access to another customer number is forbidden
+GET {{baseUrl}}/api/customer/get?customerNumber=0000000000000000
+Authorization: Bearer {{loginCustomer.response.body.$.sessionToken}}
+Accept: application/json
+
+### Revoke the login session
+POST {{baseUrl}}/api/access/logout
+Authorization: Bearer {{loginCustomer.response.body.$.sessionToken}}
+
+### A revoked session is rejected (expected: 401)
+GET {{baseUrl}}/api/customer/get?customerNumber={{registerCustomer.response.body.$.customer.customerNumber}}
+Authorization: Bearer {{loginCustomer.response.body.$.sessionToken}}
+Accept: application/json
