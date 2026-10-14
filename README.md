@@ -1,8 +1,6 @@
 # Python Banking API
 
-A FastAPI port of the Java Banking API playground in `Z:\GIT\java-banking-api`.
-It implements the same ten endpoints, camelCase request/response fields, bearer
-sessions, account types, ownership checks, and banking rules.
+A FastAPI port of the Java Banking API playground.
 
 ## Run locally
 
